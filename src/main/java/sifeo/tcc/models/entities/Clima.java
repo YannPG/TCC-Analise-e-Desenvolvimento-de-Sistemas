@@ -7,7 +7,6 @@ import lombok.Setter;
 import sifeo.tcc.models.enums.Tempo;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
