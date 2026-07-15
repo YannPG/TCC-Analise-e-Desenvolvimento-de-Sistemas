@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -17,32 +18,45 @@ public class Documento {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    private Categoria idCategoria;
+    @JoinColumn(name = "categoria_id", nullable = false)
+    private Categoria categoria;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    private Equipamentos idEquipamentos;
+    @JoinColumn(name = "equipamento_id")
+    private Equipamento equipamento;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    private Setores idSetores;
+    @JoinColumn(name = "setor_id")
+    private Setor setor;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    private Insumos idInsumos;
+    @JoinColumn(name = "insumo_id")
+    private Insumo insumo;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "funcionario_id")
     private Funcionario funcionario;
 
+    @Column(nullable = false, length = 150)
     private String nome;
 
+    @Column(length = 255)
     private String descricao;
 
-    private LocalDateTime dataAdicionado;
+    @Column(name = "data_adicionado", nullable = false)
+    private LocalDate dataAdicionado;
 
-    private byte arquivo;
+    @Lob
+    @Column(name = "arquivo")
+    private byte[] arquivo;
 
+    @Column(name = "receita_despesa", nullable = false)
     private boolean receitaDespesa;
 
+    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal valor;
 }

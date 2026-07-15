@@ -5,12 +5,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Getter
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "sitio")
-public class Sitio {
+@Table(name = "equipamento")
+public class Equipamento {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,15 +20,18 @@ public class Sitio {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_id", nullable = false)
-    private Usuario usuario;
+    @JoinColumn(name = "sitio_id", nullable = false)
+    private Sitio sitio;
 
     @Column(nullable = false, length = 150)
     private String nome;
 
-    @Column(length = 9)
-    private String cep;
-
     @Column(length = 255)
-    private String endereco;
+    private String descricao;
+
+    @Column(name = "data_aquisicao", nullable = false)
+    private LocalDate dataAquisicao;
+
+    @Column(name = "data_venda")
+    private LocalDate dataVenda;
 }

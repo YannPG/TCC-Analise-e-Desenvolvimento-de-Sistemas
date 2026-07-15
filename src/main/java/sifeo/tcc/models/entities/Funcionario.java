@@ -16,17 +16,28 @@ public class Funcionario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer idFuncionario;
+    @Column(name = "id")
+    private Integer id;
 
-    private String nomeCompletoFuncionario;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sitio_id", nullable = false)
+    private Sitio sitio;
 
+    @Column(name = "nome_completo", nullable = false, length = 150)
+    private String nomeCompleto;
+
+    @Column(length = 11, unique = true)
     private String cpf;
 
+    @Column(length = 14, unique = true)
     private String cnpj;
 
+    @Column(name = "data_nascimento")
     private LocalDate dataNascimento;
 
+    @Column(length = 15)
     private String telefone;
 
+    @Column(length = 100, unique = true)
     private String email;
 }
