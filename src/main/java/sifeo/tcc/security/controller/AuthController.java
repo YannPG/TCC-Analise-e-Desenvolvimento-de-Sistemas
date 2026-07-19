@@ -1,5 +1,6 @@
 package sifeo.tcc.security.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -7,15 +8,20 @@ import sifeo.tcc.security.service.AuthService;
 import sifeo.tcc.security.dto.LoginRequest;
 import sifeo.tcc.security.dto.LoginResponse;
 import sifeo.tcc.security.dto.RegistroRequest;
+import sifeo.tcc.service.UsuarioService;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:4200")
 public class AuthController {
 
+    private final UsuarioService usuarioService;
     private final AuthService authService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(UsuarioService usuarioService, AuthService authService) {
+        this.usuarioService = usuarioService;
         this.authService = authService;
     }
 
@@ -26,8 +32,10 @@ public class AuthController {
     }
 
     @PostMapping("/registrar")
-    public ResponseEntity<String> registrar(@RequestBody RegistroRequest request) {
-        this.authService.registrar(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body("Usuário registrado com sucesso!");
+    public ResponseEntity<Map<String, String>> registrar(@RequestBody @Valid RegistroRequest request) {
+        usuarioService.registrarNovoUsuario(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("message", "Usuário cadastrado com sucesso!"));
     }
+
 }
