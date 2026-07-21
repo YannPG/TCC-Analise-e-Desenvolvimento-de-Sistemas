@@ -41,4 +41,9 @@ public class UsuarioService {
 
         usuarioRepository.save(novoUsuario);
     }
+
+    public Usuario buscarPorLogin(String email) {
+        return usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado no sistema."));
+    }
 }
