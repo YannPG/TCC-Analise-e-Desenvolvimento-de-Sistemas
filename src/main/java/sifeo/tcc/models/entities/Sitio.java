@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -14,7 +16,6 @@ public class Sitio {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -29,4 +30,16 @@ public class Sitio {
 
     @Column(length = 255)
     private String endereco;
+
+    @Column(length = 18)
+    private String cnpj;
+
+    @Column(nullable = false, length = 100)
+    private String municipio;
+
+    @Column(nullable = false, length = 2)
+    private String uf;
+
+    @OneToMany(mappedBy = "sitio", fetch = FetchType.LAZY)
+    private List<Setor> setores;
 }

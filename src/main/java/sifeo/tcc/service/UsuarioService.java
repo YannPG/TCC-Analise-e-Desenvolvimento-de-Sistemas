@@ -3,7 +3,7 @@ package sifeo.tcc.service;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sifeo.tcc.exception.dto.RegraNegocioException;
+import sifeo.tcc.exception.model.RegraNegocioException;
 import sifeo.tcc.models.entities.Usuario;
 import sifeo.tcc.repository.UsuarioRepository;
 import sifeo.tcc.security.dto.RegistroRequest;
