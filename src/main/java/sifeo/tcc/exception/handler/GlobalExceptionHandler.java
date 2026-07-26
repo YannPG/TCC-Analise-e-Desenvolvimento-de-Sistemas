@@ -4,15 +4,16 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import sifeo.tcc.exception.dto.ErroResposta;
-import sifeo.tcc.exception.dto.RegraNegocioException;
+import sifeo.tcc.exception.model.AcessoNegadoException;
+import sifeo.tcc.exception.model.RecursoNaoEncontradoException;
+import sifeo.tcc.exception.model.RegraNegocioException;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -41,6 +42,57 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(erro);
     }
 
+    @ExceptionHandler(AcessoNegadoException.class)
+    public ResponseEntity<ErroResposta> handleAcessoNegado(AcessoNegadoException ex, HttpServletRequest request) {
+        ErroResposta erro = new ErroResposta(
+                LocalDateTime.now(),
+                HttpStatus.FORBIDDEN.value(),
+                "Acesso Negado",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(erro);
+    }
+
+    @ExceptionHandler(RecursoNaoEncontradoException.class)
+    public ResponseEntity<ErroResposta> handleRecursoNaoEncontrado(RecursoNaoEncontradoException ex, HttpServletRequest request) {
+        ErroResposta erro = new ErroResposta(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                "Recurso não encontrado",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(erro);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErroResposta> handleValidationExceptions(MethodArgumentNotValidException ex, HttpServletRequest request) {
+        FieldError fieldError = ex.getBindingResult().getFieldErrors().get(0);
+        String mensagemMapeada = "Campo '" + fieldError.getField() + "': " + fieldError.getDefaultMessage();
+
+        ErroResposta erro = new ErroResposta(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Dados inválidos",
+                mensagemMapeada,
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(erro);
+    }
+
+    @ExceptionHandler(RegraNegocioException.class)
+    public ResponseEntity<ErroResposta> handleRegraNegocio(RegraNegocioException ex, HttpServletRequest request) {
+        ErroResposta erro = new ErroResposta(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                "Violação de Regra de Negócio",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(erro);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErroResposta> handleGeneralException(Exception ex, HttpServletRequest request) {
         ErroResposta erro = new ErroResposta(
@@ -51,20 +103,5 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(erro);
-    }
-
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(error ->
-                errors.put(error.getField(), error.getDefaultMessage()));
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
-    }
-
-    @ExceptionHandler(RegraNegocioException.class)
-    public ResponseEntity<Map<String, String>> handleRegraNegocio(RegraNegocioException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Map.of("message", ex.getMessage()));
     }
 }

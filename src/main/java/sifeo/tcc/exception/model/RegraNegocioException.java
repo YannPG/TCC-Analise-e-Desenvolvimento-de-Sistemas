@@ -1,4 +1,4 @@
-package sifeo.tcc.exception.dto;
+package sifeo.tcc.exception.model;
 
 public class RegraNegocioException extends RuntimeException {
 
