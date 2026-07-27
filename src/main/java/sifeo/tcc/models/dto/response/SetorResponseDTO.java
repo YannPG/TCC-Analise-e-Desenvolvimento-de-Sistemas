@@ -1,4 +1,4 @@
-package sifeo.tcc.models.dto;
+package sifeo.tcc.models.dto.response;
 
 import lombok.Data;
 

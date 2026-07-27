@@ -1,7 +1,8 @@
-package sifeo.tcc.models.dto;
+package sifeo.tcc.models.dto.request;
 
 import java.util.List;
 import lombok.Data;
+import sifeo.tcc.models.dto.response.SetorResponseDTO;
 
 @Data
 public class SitioResponseDTO {
