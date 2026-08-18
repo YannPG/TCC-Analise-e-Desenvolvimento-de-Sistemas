@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import sifeo.tcc.models.enums.StatusAtividade;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,11 +30,16 @@ public class HistoricoAtividade {
     @JoinColumn(name = "tipo_atividade_id", nullable = false)
     private TipoAtividade tipoAtividade;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "responsavel_id", nullable = false)
+    private Funcionario responsavel;
+
     @Column(nullable = false, length = 255)
     private String descricao;
 
-    @Column(nullable = false)
-    private boolean status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private StatusAtividade status = StatusAtividade.AGENDADA;
 
     @Column(name = "data_atividade", nullable = false)
     private LocalDateTime dataAtividade;
