@@ -1,9 +1,8 @@
 package sifeo.tcc.models.enums;
 
 public enum Tempo {
-    SOL,
-    CHUVA,
+    ENSOLARADO,
     NUBLADO,
-    TEMPESTADE,
-    NEVOA
+    CHUVOSO,
+    TEMPESTADE
 }
