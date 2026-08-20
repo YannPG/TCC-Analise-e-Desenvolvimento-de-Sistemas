@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
+import sifeo.tcc.models.enums.CategoriaInsumo;
+import sifeo.tcc.models.enums.UnidadeMedida;
 
 @Getter
 @Setter
@@ -29,4 +31,15 @@ public class Insumo {
 
     @Column(name = "quantidade_estoque", nullable = false)
     private Double quantidadeEstoque;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 50)
+    private CategoriaInsumo categoria;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "unidade_medida", length = 30)
+    private UnidadeMedida unidadeMedida;
+
+    @Column(length = 150)
+    private String fornecedor;
 }
