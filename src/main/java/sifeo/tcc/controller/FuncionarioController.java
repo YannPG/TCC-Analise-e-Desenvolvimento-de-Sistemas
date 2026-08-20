@@ -1,9 +1,11 @@
 package sifeo.tcc.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import sifeo.tcc.models.entities.Funcionario;
-import sifeo.tcc.repository.FuncionarioRepository;
+import sifeo.tcc.models.dto.request.FuncionarioRequestDTO;
+import sifeo.tcc.models.dto.response.FuncionarioResponseDTO;
+import sifeo.tcc.service.FuncionarioService;
 
 import java.util.List;
 
@@ -11,14 +13,32 @@ import java.util.List;
 @RequestMapping("/api/funcionarios")
 public class FuncionarioController {
 
-    private final FuncionarioRepository repository;
+    private final FuncionarioService service;
 
-    public FuncionarioController(FuncionarioRepository repository) {
-        this.repository = repository;
+    public FuncionarioController(FuncionarioService service) {
+        this.service = service;
     }
 
     @GetMapping
-    public ResponseEntity<List<Funcionario>> listarTodos() {
-        return ResponseEntity.ok(repository.findAll());
+    public ResponseEntity<List<FuncionarioResponseDTO>> listar(
+            @RequestParam(required = false) Integer sitioId) {
+        return ResponseEntity.ok(service.listarPorSitio(sitioId));
+    }
+
+    @PostMapping
+    public ResponseEntity<FuncionarioResponseDTO> cadastrar(@RequestBody FuncionarioRequestDTO dto) {
+        FuncionarioResponseDTO novoFuncionario = service.cadastrar(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(novoFuncionario);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<FuncionarioResponseDTO> atualizar(@PathVariable Integer id, @RequestBody FuncionarioRequestDTO dto) {
+        return ResponseEntity.ok(service.atualizar(id, dto));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletar(@PathVariable Integer id) {
+        service.deletar(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -33,11 +33,20 @@ public class Funcionario {
     private String cnpj;
 
     @Column(name = "data_nascimento")
-    private Date dataNascimento;
+    private LocalDate dataNascimento;
 
     @Column(length = 15)
     private String telefone;
 
     @Column(length = 100, unique = true)
     private String email;
+
+    @Column(length = 50)
+    private String cargo;
+
+    @Column(name = "data_admissao")
+    private LocalDate dataAdmissao;
+
+    @Column(length = 20)
+    private String status = "ATIVO";
 }
