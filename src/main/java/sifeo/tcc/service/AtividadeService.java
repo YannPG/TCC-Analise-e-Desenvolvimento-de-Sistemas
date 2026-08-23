@@ -18,18 +18,21 @@ public class AtividadeService {
     private final FuncionarioRepository funcionarioRepository;
     private final TipoAtividadeRepository tipoAtividadeRepository;
     private final EquipamentoRepository equipamentoRepository;
+    private final SitioRepository sitioRepository;
 
     public AtividadeService(
             HistoricoAtividadeRepository atividadeRepository,
             SetorRepository setorRepository,
             FuncionarioRepository funcionarioRepository,
             TipoAtividadeRepository tipoAtividadeRepository,
-            EquipamentoRepository equipamentoRepository) {
+            EquipamentoRepository equipamentoRepository,
+            SitioRepository sitioRepository) {
         this.atividadeRepository = atividadeRepository;
         this.setorRepository = setorRepository;
         this.funcionarioRepository = funcionarioRepository;
         this.tipoAtividadeRepository = tipoAtividadeRepository;
         this.equipamentoRepository = equipamentoRepository;
+        this.sitioRepository = sitioRepository;
     }
 
     @Transactional(readOnly = true)
@@ -45,7 +48,6 @@ public class AtividadeService {
     public AtividadeResponseDTO cadastrar(AtividadeRequestDTO dto) {
         HistoricoAtividade atividade = new HistoricoAtividade();
         preencherEValidadeEntidade(atividade, dto);
-
         HistoricoAtividade salva = atividadeRepository.save(atividade);
         return mapearParaDTO(salva);
     }
@@ -70,6 +72,9 @@ public class AtividadeService {
     }
 
     private void preencherEValidadeEntidade(HistoricoAtividade atividade, AtividadeRequestDTO dto) {
+        Sitio sitio = sitioRepository.findById(dto.getSitioId())
+                .orElseThrow(() -> new RuntimeException("Sítio não encontrado."));
+
         Setor setor = setorRepository.findById(dto.getSetorId())
                 .orElseThrow(() -> new RuntimeException("Setor não encontrado."));
 
@@ -79,6 +84,7 @@ public class AtividadeService {
         Funcionario responsavel = funcionarioRepository.findById(dto.getResponsavelId())
                 .orElseThrow(() -> new RuntimeException("Funcionário responsável não encontrado."));
 
+        atividade.setSitio(sitio);
         atividade.setSetor(setor);
         atividade.setTipoAtividade(tipo);
         atividade.setResponsavel(responsavel);
@@ -86,18 +92,12 @@ public class AtividadeService {
         atividade.setStatus(dto.getStatus());
         atividade.setDescricao(dto.getDescricao());
 
-        atividade.getEquipamentosAtividades().clear();
-        if (dto.getEquipamentosIds() != null && !dto.getEquipamentosIds().isEmpty()) {
-            for (Integer eqId : dto.getEquipamentosIds()) {
-                Equipamento eq = equipamentoRepository.findById(eqId)
-                        .orElseThrow(() -> new RuntimeException("Equipamento ID " + eqId + " não encontrado."));
-
-                EquipamentoAtividade eqAtividade = new EquipamentoAtividade();
-                eqAtividade.setAtividade(atividade);
-                eqAtividade.setEquipamento(eq);
-
-                atividade.getEquipamentosAtividades().add(eqAtividade);
-            }
+        if (dto.getEquipamentoId() != null) {
+            Equipamento eq = equipamentoRepository.findById(dto.getEquipamentoId())
+                    .orElseThrow(() -> new RuntimeException("Equipamento não encontrado."));
+            atividade.setEquipamento(eq);
+        } else {
+            atividade.setEquipamento(null);
         }
     }
 
@@ -108,17 +108,26 @@ public class AtividadeService {
         dto.setStatus(atividade.getStatus());
         dto.setDescricao(atividade.getDescricao());
 
-        if (atividade.getTipoAtividade() != null) dto.setTipoAtividadeNome(atividade.getTipoAtividade().getNome());
-        if (atividade.getSetor() != null) dto.setSetorNome(atividade.getSetor().getNome());
-        if (atividade.getResponsavel() != null) dto.setResponsavelNome(atividade.getResponsavel().getNomeCompleto());
+        if (atividade.getTipoAtividade() != null) {
+            dto.setTipoAtividadeNome(atividade.getTipoAtividade().getNome());
+            dto.setTipoAtividadeId(atividade.getTipoAtividade().getId()); 
+        }
 
-        if (atividade.getEquipamentosAtividades() != null && !atividade.getEquipamentosAtividades().isEmpty()) {
-            String nomes = atividade.getEquipamentosAtividades().stream()
-                    .map(ea -> ea.getEquipamento().getNome())
-                    .collect(Collectors.joining(", "));
-            dto.setEquipamentosNomes(nomes);
+        if (atividade.getSetor() != null) {
+            dto.setSetorNome(atividade.getSetor().getNome());
+            dto.setSetorId(atividade.getSetor().getId());
+        }
+
+        if (atividade.getResponsavel() != null) {
+            dto.setResponsavelNome(atividade.getResponsavel().getNomeCompleto());
+            dto.setResponsavelId(atividade.getResponsavel().getId());
+        }
+
+        if (atividade.getEquipamento() != null) {
+            dto.setEquipamentoNome(atividade.getEquipamento().getNome());
+            dto.setEquipamentoId(atividade.getEquipamento().getId());
         } else {
-            dto.setEquipamentosNomes("-");
+            dto.setEquipamentoNome("-");
         }
 
         return dto;

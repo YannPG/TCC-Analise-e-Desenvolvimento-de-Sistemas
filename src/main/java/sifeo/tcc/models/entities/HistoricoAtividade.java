@@ -7,8 +7,6 @@ import lombok.Setter;
 import sifeo.tcc.models.enums.StatusAtividade;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Getter
 @Setter
@@ -23,6 +21,10 @@ public class HistoricoAtividade {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sitio_id", nullable = false)
+    private Sitio sitio;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "setor_id", nullable = false)
     private Setor setor;
 
@@ -34,6 +36,10 @@ public class HistoricoAtividade {
     @JoinColumn(name = "responsavel_id", nullable = false)
     private Funcionario responsavel;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "equipamento_id")
+    private Equipamento equipamento;
+
     @Column(nullable = false, length = 255)
     private String descricao;
 
@@ -43,7 +49,4 @@ public class HistoricoAtividade {
 
     @Column(name = "data_atividade", nullable = false)
     private LocalDateTime dataAtividade;
-
-    @OneToMany(mappedBy = "atividade", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<EquipamentoAtividade> equipamentosAtividades = new ArrayList<>();
 }

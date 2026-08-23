@@ -17,6 +17,10 @@ public class TipoAtividade {
     @Column(name = "id")
     private Integer id;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sitio_id", nullable = false)
+    private Sitio sitio;
+
+    @Column(nullable = false, length = 100)
     private String nome;
 }

@@ -13,7 +13,13 @@ public class AtividadeResponseDTO {
     private String tipoAtividadeNome;
     private String setorNome;
     private String responsavelNome;
-    private String equipamentosNomes;
+    private String equipamentoNome;
+
+    private Integer setorId;
+    private Integer tipoAtividadeId;
+    private Integer responsavelId;
+    private Integer equipamentoId;
+
     private StatusAtividade status;
     private String descricao;
 }

@@ -1,12 +1,14 @@
 package sifeo.tcc.models.embedable;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import sifeo.tcc.models.entities.Equipamento;
+import sifeo.tcc.models.entities.HistoricoAtividade;
+
 import java.io.Serializable;
 
 @Getter
@@ -19,9 +21,13 @@ public class EquipamentoAtividadeId implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @Column(name = "equipamento_id")
-    private Integer equipamentoId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("atividadeId")
+    @JoinColumn(name = "atividade_id")
+    private HistoricoAtividade atividade;
 
-    @Column(name = "atividade_id")
-    private Integer atividadeId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("equipamentoId")
+    @JoinColumn(name = "equipamento_id")
+    private Equipamento equipamento;
 }
