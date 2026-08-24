@@ -21,6 +21,10 @@ public class Documento {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sitio_id", nullable = false)
+    private Sitio sitio;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "categoria_id", nullable = false)
     private Categoria categoria;
 
@@ -40,6 +44,10 @@ public class Documento {
     @JoinColumn(name = "funcionario_id")
     private Funcionario funcionario;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "atividade_id")
+    private HistoricoAtividade atividade;
+
     @Column(nullable = false, length = 150)
     private String nome;
 
@@ -52,6 +60,12 @@ public class Documento {
     @Lob
     @Column(name = "arquivo")
     private byte[] arquivo;
+
+    @Column(name = "nome_arquivo", length = 255)
+    private String nomeArquivo;
+
+    @Column(name = "tipo_arquivo", length = 100)
+    private String tipoArquivo;
 
     @Column(name = "receita_despesa", nullable = false)
     private boolean receitaDespesa;
