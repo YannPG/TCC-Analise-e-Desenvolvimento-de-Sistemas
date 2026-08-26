@@ -2,6 +2,8 @@ package sifeo.tcc.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sifeo.tcc.exception.model.RecursoNaoEncontradoException;
+import sifeo.tcc.exception.model.RegraNegocioException;
 import sifeo.tcc.models.dto.request.AtividadeRequestDTO;
 import sifeo.tcc.models.dto.response.AtividadeResponseDTO;
 import sifeo.tcc.models.entities.*;
@@ -18,7 +20,8 @@ public class AtividadeService {
     private final FuncionarioRepository funcionarioRepository;
     private final TipoAtividadeRepository tipoAtividadeRepository;
     private final EquipamentoRepository equipamentoRepository;
-    private final SitioRepository sitioRepository;
+    private final SitioService sitioService;
+    private final AutenticacaoService autenticacaoService;
 
     public AtividadeService(
             HistoricoAtividadeRepository atividadeRepository,
@@ -26,20 +29,27 @@ public class AtividadeService {
             FuncionarioRepository funcionarioRepository,
             TipoAtividadeRepository tipoAtividadeRepository,
             EquipamentoRepository equipamentoRepository,
-            SitioRepository sitioRepository) {
+            SitioService sitioService,
+            AutenticacaoService autenticacaoService) {
         this.atividadeRepository = atividadeRepository;
         this.setorRepository = setorRepository;
         this.funcionarioRepository = funcionarioRepository;
         this.tipoAtividadeRepository = tipoAtividadeRepository;
         this.equipamentoRepository = equipamentoRepository;
-        this.sitioRepository = sitioRepository;
+        this.sitioService = sitioService;
+        this.autenticacaoService = autenticacaoService;
     }
 
     @Transactional(readOnly = true)
     public List<AtividadeResponseDTO> listarTodos(Integer sitioId) {
-        List<HistoricoAtividade> atividades = (sitioId != null)
-                ? atividadeRepository.findBySetorSitioId(sitioId)
-                : atividadeRepository.findAll();
+        List<HistoricoAtividade> atividades;
+        if (sitioId != null) {
+            sitioService.buscarSitioSeguro(sitioId);
+            atividades = atividadeRepository.findBySitioId(sitioId);
+        } else {
+            Integer usuarioId = autenticacaoService.usuarioLogado().getId();
+            atividades = atividadeRepository.findBySitio_Usuario_Id(usuarioId);
+        }
 
         return atividades.stream().map(this::mapearParaDTO).collect(Collectors.toList());
     }
@@ -55,7 +65,8 @@ public class AtividadeService {
     @Transactional
     public AtividadeResponseDTO atualizar(Integer id, AtividadeRequestDTO dto) {
         HistoricoAtividade atividade = atividadeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Atividade não encontrada."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Atividade não encontrada."));
+        sitioService.validarPropriedadeDoUsuario(atividade.getSitio());
 
         preencherEValidadeEntidade(atividade, dto);
 
@@ -65,24 +76,26 @@ public class AtividadeService {
 
     @Transactional
     public void deletar(Integer id) {
-        if (!atividadeRepository.existsById(id)) {
-            throw new RuntimeException("Atividade não encontrada para exclusão.");
-        }
-        atividadeRepository.deleteById(id);
+        HistoricoAtividade atividade = atividadeRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Atividade não encontrada para exclusão."));
+        sitioService.validarPropriedadeDoUsuario(atividade.getSitio());
+        atividadeRepository.delete(atividade);
     }
 
     private void preencherEValidadeEntidade(HistoricoAtividade atividade, AtividadeRequestDTO dto) {
-        Sitio sitio = sitioRepository.findById(dto.getSitioId())
-                .orElseThrow(() -> new RuntimeException("Sítio não encontrado."));
+        Sitio sitio = sitioService.buscarSitioSeguro(dto.getSitioId());
 
         Setor setor = setorRepository.findById(dto.getSetorId())
-                .orElseThrow(() -> new RuntimeException("Setor não encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Setor não encontrado."));
+        validarMesmaPropriedade(setor.getSitio().getId(), sitio.getId(), "Setor");
 
         TipoAtividade tipo = tipoAtividadeRepository.findById(dto.getTipoAtividadeId())
-                .orElseThrow(() -> new RuntimeException("Tipo de Atividade não encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Tipo de Atividade não encontrado."));
+        validarMesmaPropriedade(tipo.getSitio().getId(), sitio.getId(), "Tipo de Atividade");
 
         Funcionario responsavel = funcionarioRepository.findById(dto.getResponsavelId())
-                .orElseThrow(() -> new RuntimeException("Funcionário responsável não encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionário responsável não encontrado."));
+        validarMesmaPropriedade(responsavel.getSitio().getId(), sitio.getId(), "Funcionário responsável");
 
         atividade.setSitio(sitio);
         atividade.setSetor(setor);
@@ -94,10 +107,17 @@ public class AtividadeService {
 
         if (dto.getEquipamentoId() != null) {
             Equipamento eq = equipamentoRepository.findById(dto.getEquipamentoId())
-                    .orElseThrow(() -> new RuntimeException("Equipamento não encontrado."));
+                    .orElseThrow(() -> new RecursoNaoEncontradoException("Equipamento não encontrado."));
+            validarMesmaPropriedade(eq.getSitio().getId(), sitio.getId(), "Equipamento");
             atividade.setEquipamento(eq);
         } else {
             atividade.setEquipamento(null);
+        }
+    }
+
+    private void validarMesmaPropriedade(Integer sitioIdDoVinculo, Integer sitioIdInformado, String nomeDoVinculo) {
+        if (!sitioIdDoVinculo.equals(sitioIdInformado)) {
+            throw new RegraNegocioException(nomeDoVinculo + " informado não pertence à propriedade selecionada.");
         }
     }
 
@@ -110,7 +130,7 @@ public class AtividadeService {
 
         if (atividade.getTipoAtividade() != null) {
             dto.setTipoAtividadeNome(atividade.getTipoAtividade().getNome());
-            dto.setTipoAtividadeId(atividade.getTipoAtividade().getId()); 
+            dto.setTipoAtividadeId(atividade.getTipoAtividade().getId());
         }
 
         if (atividade.getSetor() != null) {

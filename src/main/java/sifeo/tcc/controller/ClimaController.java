@@ -1,5 +1,6 @@
 package sifeo.tcc.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,13 +27,13 @@ public class ClimaController {
     }
 
     @PostMapping
-    public ResponseEntity<ClimaResponseDTO> cadastrar(@RequestBody ClimaRequestDTO dto) {
+    public ResponseEntity<ClimaResponseDTO> cadastrar(@Valid @RequestBody ClimaRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.cadastrar(dto));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ClimaResponseDTO> atualizar(
-            @PathVariable Integer id, @RequestBody ClimaRequestDTO dto) {
+            @PathVariable Integer id, @Valid @RequestBody ClimaRequestDTO dto) {
         return ResponseEntity.ok(service.atualizar(id, dto));
     }
 

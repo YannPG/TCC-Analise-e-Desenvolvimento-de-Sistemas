@@ -9,4 +9,6 @@ import java.util.List;
 public interface SetorRepository extends JpaRepository<Setor, Integer> {
 
     List<Setor> findBySitioId(Integer sitioId);
+
+    List<Setor> findBySitio_Usuario_Id(Integer usuarioId);
 }

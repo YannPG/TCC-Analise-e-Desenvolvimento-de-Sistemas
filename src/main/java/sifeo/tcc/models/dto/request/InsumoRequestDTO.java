@@ -1,14 +1,20 @@
 package sifeo.tcc.models.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import sifeo.tcc.models.enums.CategoriaInsumo;
 import sifeo.tcc.models.enums.UnidadeMedida;
 
 @Data
 public class InsumoRequestDTO {
-    private Integer id;
+
+    @NotNull(message = "O ID da propriedade (Sítio) é obrigatório")
     private Integer sitioId;
+
+    @NotBlank(message = "O nome do insumo é obrigatório")
     private String nome;
+
     private String descricao;
     private Double quantidadeEstoque;
 

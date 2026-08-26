@@ -1,5 +1,6 @@
 package sifeo.tcc.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -36,7 +37,7 @@ public class UsuarioController {
     }
 
     @PutMapping("/perfil")
-    public ResponseEntity<UsuarioResponseDTO> atualizarPerfil(@RequestBody PerfilRequestDTO dto) {
+    public ResponseEntity<UsuarioResponseDTO> atualizarPerfil(@Valid @RequestBody PerfilRequestDTO dto) {
 
         String loginUsuario = SecurityContextHolder.getContext().getAuthentication().getName();
         Usuario usuarioLogado = usuarioService.buscarPorLogin(loginUsuario);

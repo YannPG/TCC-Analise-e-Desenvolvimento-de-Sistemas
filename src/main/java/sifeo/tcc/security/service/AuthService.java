@@ -1,12 +1,10 @@
 package sifeo.tcc.security.service;
 
-import jakarta.transaction.Transactional;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import sifeo.tcc.security.dto.LoginRequest;
 import sifeo.tcc.security.dto.LoginResponse;
-import sifeo.tcc.security.dto.RegistroRequest;
 import sifeo.tcc.models.entities.Usuario;
 import sifeo.tcc.repository.UsuarioRepository;
 
@@ -21,28 +19,6 @@ public class AuthService {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
-    }
-
-    @Transactional
-    public void registrar(RegistroRequest request) {
-        if (usuarioRepository.findByEmail(request.email()).isPresent()) {
-            throw new IllegalArgumentException("E-mail já cadastrado no sistema.");
-        }
-
-        if (usuarioRepository.findByCpf(request.cpf()).isPresent()) {
-            throw new IllegalArgumentException("CPF já cadastrado no sistema.");
-        }
-
-        Usuario novoUsuario = new Usuario();
-        novoUsuario.setNomeUsuario(request.nomeUsuario());
-        novoUsuario.setCpf(request.cpf());
-        novoUsuario.setNomeCompleto(request.nomeCompleto());
-        novoUsuario.setEmail(request.email());
-
-        String senhaCriptografada = passwordEncoder.encode(request.senha());
-        novoUsuario.setSenha(senhaCriptografada);
-
-        usuarioRepository.save(novoUsuario);
     }
 
     public LoginResponse autenticar(LoginRequest request) {

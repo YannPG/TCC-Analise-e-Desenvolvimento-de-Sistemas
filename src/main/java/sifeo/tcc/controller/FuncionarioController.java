@@ -1,5 +1,6 @@
 package sifeo.tcc.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,13 +27,13 @@ public class FuncionarioController {
     }
 
     @PostMapping
-    public ResponseEntity<FuncionarioResponseDTO> cadastrar(@RequestBody FuncionarioRequestDTO dto) {
+    public ResponseEntity<FuncionarioResponseDTO> cadastrar(@Valid @RequestBody FuncionarioRequestDTO dto) {
         FuncionarioResponseDTO novoFuncionario = service.cadastrar(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(novoFuncionario);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<FuncionarioResponseDTO> atualizar(@PathVariable Integer id, @RequestBody FuncionarioRequestDTO dto) {
+    public ResponseEntity<FuncionarioResponseDTO> atualizar(@PathVariable Integer id, @Valid @RequestBody FuncionarioRequestDTO dto) {
         return ResponseEntity.ok(service.atualizar(id, dto));
     }
 

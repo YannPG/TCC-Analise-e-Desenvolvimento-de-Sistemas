@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import sifeo.tcc.models.enums.StatusFuncionario;
 
 import java.time.LocalDate;
 
@@ -47,6 +48,7 @@ public class Funcionario {
     @Column(name = "data_admissao")
     private LocalDate dataAdmissao;
 
+    @Enumerated(EnumType.STRING)
     @Column(length = 20)
-    private String status = "ATIVO";
+    private StatusFuncionario status = StatusFuncionario.ATIVO;
 }

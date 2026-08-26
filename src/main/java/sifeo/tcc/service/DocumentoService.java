@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 public class DocumentoService {
 
     private final DocumentoRepository documentoRepository;
-    private final SitioRepository sitioRepository;
+    private final SitioService sitioService;
     private final CategoriaRepository categoriaRepository;
     private final SetorRepository setorRepository;
     private final EquipamentoRepository equipamentoRepository;
@@ -27,7 +27,7 @@ public class DocumentoService {
 
     public DocumentoService(
             DocumentoRepository documentoRepository,
-            SitioRepository sitioRepository,
+            SitioService sitioService,
             CategoriaRepository categoriaRepository,
             SetorRepository setorRepository,
             EquipamentoRepository equipamentoRepository,
@@ -35,7 +35,7 @@ public class DocumentoService {
             FuncionarioRepository funcionarioRepository,
             HistoricoAtividadeRepository atividadeRepository) {
         this.documentoRepository = documentoRepository;
-        this.sitioRepository = sitioRepository;
+        this.sitioService = sitioService;
         this.categoriaRepository = categoriaRepository;
         this.setorRepository = setorRepository;
         this.equipamentoRepository = equipamentoRepository;
@@ -46,6 +46,7 @@ public class DocumentoService {
 
     @Transactional(readOnly = true)
     public List<DocumentoResponseDTO> listarPorSitio(Integer sitioId) {
+        sitioService.buscarSitioSeguro(sitioId);
         return documentoRepository.findBySitioId(sitioId).stream()
                 .map(this::mapearParaDTO)
                 .collect(Collectors.toList());
@@ -69,6 +70,7 @@ public class DocumentoService {
     public DocumentoResponseDTO atualizar(Integer id, DocumentoRequestDTO dto) {
         Documento documento = documentoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Documento não encontrado com o ID informado."));
+        sitioService.validarPropriedadeDoUsuario(documento.getSitio());
 
         preencherVinculosEDados(documento, dto);
 
@@ -82,21 +84,26 @@ public class DocumentoService {
 
     @Transactional
     public void deletar(Integer id) {
-        if (!documentoRepository.existsById(id)) {
-            throw new RecursoNaoEncontradoException("Documento não encontrado para exclusão.");
-        }
-        documentoRepository.deleteById(id);
+        Documento documento = documentoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Documento não encontrado para exclusão."));
+        sitioService.validarPropriedadeDoUsuario(documento.getSitio());
+        documentoRepository.delete(documento);
     }
 
     @Transactional(readOnly = true)
     public Documento buscarParaDownload(Integer id) {
-        return documentoRepository.findById(id)
+        Documento documento = documentoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Documento não encontrado com o ID informado."));
+        sitioService.validarPropriedadeDoUsuario(documento.getSitio());
+
+        if (documento.getArquivo() == null || documento.getArquivo().length == 0) {
+            throw new RecursoNaoEncontradoException("Este documento não possui um arquivo anexado.");
+        }
+        return documento;
     }
 
     private void preencherVinculosEDados(Documento documento, DocumentoRequestDTO dto) {
-        Sitio sitio = sitioRepository.findById(dto.getSitioId())
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Propriedade não encontrada com o ID informado."));
+        Sitio sitio = sitioService.buscarSitioSeguro(dto.getSitioId());
 
         Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Categoria não encontrada com o ID informado."));

@@ -2,12 +2,12 @@ package sifeo.tcc.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sifeo.tcc.exception.model.RecursoNaoEncontradoException;
 import sifeo.tcc.models.dto.request.ClimaRequestDTO;
 import sifeo.tcc.models.dto.response.ClimaResponseDTO;
 import sifeo.tcc.models.entities.Clima;
 import sifeo.tcc.models.entities.Sitio;
 import sifeo.tcc.repository.ClimaRepository;
-import sifeo.tcc.repository.SitioRepository;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -17,24 +17,28 @@ import java.util.stream.Collectors;
 public class ClimaService {
 
     private final ClimaRepository climaRepository;
-    private final SitioRepository sitioRepository;
+    private final SitioService sitioService;
+    private final AutenticacaoService autenticacaoService;
 
-    public ClimaService(ClimaRepository climaRepository, SitioRepository sitioRepository) {
+    public ClimaService(ClimaRepository climaRepository, SitioService sitioService, AutenticacaoService autenticacaoService) {
         this.climaRepository = climaRepository;
-        this.sitioRepository = sitioRepository;
+        this.sitioService = sitioService;
+        this.autenticacaoService = autenticacaoService;
     }
 
+    @Transactional(readOnly = true)
     public List<ClimaResponseDTO> listarPorSitio(Integer sitioId) {
         if (sitioId == null) {
-            return climaRepository.findAll().stream().map(this::mapearParaDTO).collect(Collectors.toList());
+            Integer usuarioId = autenticacaoService.usuarioLogado().getId();
+            return climaRepository.findBySitio_Usuario_Id(usuarioId).stream().map(this::mapearParaDTO).collect(Collectors.toList());
         }
+        sitioService.buscarSitioSeguro(sitioId);
         return climaRepository.findBySitioIdOrderByDataHoraDesc(sitioId).stream().map(this::mapearParaDTO).collect(Collectors.toList());
     }
 
     @Transactional
     public ClimaResponseDTO cadastrar(ClimaRequestDTO dto) {
-        Sitio sitio = sitioRepository.findById(dto.getSitioId())
-                .orElseThrow(() -> new RuntimeException("Sítio não encontrado com ID: " + dto.getSitioId()));
+        Sitio sitio = sitioService.buscarSitioSeguro(dto.getSitioId());
 
         Clima clima = new Clima();
         clima.setSitio(sitio);
@@ -51,7 +55,8 @@ public class ClimaService {
     @Transactional
     public ClimaResponseDTO atualizar(Integer id, ClimaRequestDTO dto) {
         Clima clima = climaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Registro climático não encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Registro climático não encontrado."));
+        sitioService.validarPropriedadeDoUsuario(clima.getSitio());
 
         clima.setTempo(dto.getTempo());
         clima.setDescricao(dto.getDescricao());
@@ -67,10 +72,10 @@ public class ClimaService {
 
     @Transactional
     public void deletar(Integer id) {
-        if (!climaRepository.existsById(id)) {
-            throw new RuntimeException("Registro climático não encontrado.");
-        }
-        climaRepository.deleteById(id);
+        Clima clima = climaRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Registro climático não encontrado."));
+        sitioService.validarPropriedadeDoUsuario(clima.getSitio());
+        climaRepository.delete(clima);
     }
 
     private ClimaResponseDTO mapearParaDTO(Clima clima) {

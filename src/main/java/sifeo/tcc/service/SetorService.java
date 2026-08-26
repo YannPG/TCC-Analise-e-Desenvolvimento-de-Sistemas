@@ -2,13 +2,14 @@ package sifeo.tcc.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sifeo.tcc.exception.model.RecursoNaoEncontradoException;
+import sifeo.tcc.exception.model.RegraNegocioException;
 import sifeo.tcc.models.entities.Setor;
 import sifeo.tcc.models.entities.Sitio;
 import sifeo.tcc.models.enums.StatusSetor;
 import sifeo.tcc.models.dto.request.SetorRequestDTO;
 import sifeo.tcc.models.dto.response.SetorResponseDTO;
 import sifeo.tcc.repository.SetorRepository;
-import sifeo.tcc.repository.SitioRepository;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -18,17 +19,18 @@ import java.util.stream.Collectors;
 public class SetorService {
 
     private final SetorRepository setorRepository;
-    private final SitioRepository sitioRepository;
+    private final SitioService sitioService;
+    private final AutenticacaoService autenticacaoService;
 
-    public SetorService(SetorRepository setorRepository, SitioRepository sitioRepository) {
+    public SetorService(SetorRepository setorRepository, SitioService sitioService, AutenticacaoService autenticacaoService) {
         this.setorRepository = setorRepository;
-        this.sitioRepository = sitioRepository;
+        this.sitioService = sitioService;
+        this.autenticacaoService = autenticacaoService;
     }
 
     @Transactional
     public SetorResponseDTO cadastrarSetor(SetorRequestDTO dto) {
-        Sitio sitio = sitioRepository.findById(dto.getSitioId())
-                .orElseThrow(() -> new RuntimeException("Propriedade não encontrada com o ID informado."));
+        Sitio sitio = sitioService.buscarSitioSeguro(dto.getSitioId());
 
         Setor setor = new Setor();
         setor.setSitio(sitio);
@@ -45,23 +47,25 @@ public class SetorService {
 
     @Transactional(readOnly = true)
     public List<SetorResponseDTO> listarSetoresPorSitio(Integer sitioId) {
+        sitioService.buscarSitioSeguro(sitioId);
         List<Setor> setores = setorRepository.findBySitioId(sitioId);
         return setores.stream().map(this::mapearParaDTO).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<SetorResponseDTO> listarTodos() {
-        List<Setor> setores = setorRepository.findAll();
+        Integer usuarioId = autenticacaoService.usuarioLogado().getId();
+        List<Setor> setores = setorRepository.findBySitio_Usuario_Id(usuarioId);
         return setores.stream().map(this::mapearParaDTO).collect(Collectors.toList());
     }
 
     @Transactional
     public SetorResponseDTO atualizarSetor(Integer id, SetorRequestDTO dto) {
         Setor setor = setorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Setor não encontrado com o ID informado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Setor não encontrado com o ID informado."));
+        sitioService.validarPropriedadeDoUsuario(setor.getSitio());
 
-        Sitio sitio = sitioRepository.findById(dto.getSitioId())
-                .orElseThrow(() -> new RuntimeException("Propriedade não encontrada com o ID informado."));
+        Sitio sitio = sitioService.buscarSitioSeguro(dto.getSitioId());
 
         setor.setNome(dto.getNome());
         setor.setHectares(dto.getHectares());
@@ -85,10 +89,16 @@ public class SetorService {
 
     @Transactional
     public void deletarSetor(Integer id) {
-        if (!setorRepository.existsById(id)) {
-            throw new RuntimeException("Setor não encontrado para exclusão.");
+        Setor setor = setorRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Setor não encontrado para exclusão."));
+        sitioService.validarPropriedadeDoUsuario(setor.getSitio());
+
+        try {
+            setorRepository.delete(setor);
+            setorRepository.flush();
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new RegraNegocioException("Não é possível excluir este setor pois existem registros vinculados a ele (atividades, documentos).");
         }
-        setorRepository.deleteById(id);
     }
 
     private SetorResponseDTO mapearParaDTO(Setor setor) {

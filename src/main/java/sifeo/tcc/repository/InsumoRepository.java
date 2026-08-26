@@ -8,4 +8,6 @@ import java.util.List;
 @Repository
 public interface InsumoRepository extends JpaRepository<Insumo, Integer> {
     List<Insumo> findBySitioId(Integer sitioId);
+
+    List<Insumo> findBySitio_Usuario_Id(Integer usuarioId);
 }

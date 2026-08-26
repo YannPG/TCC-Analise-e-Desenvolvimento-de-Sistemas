@@ -1,6 +1,7 @@
 package sifeo.tcc.exception.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -91,6 +92,18 @@ public class GlobalExceptionHandler {
                 HttpStatus.CONFLICT.value(),
                 "Violação de Regra de Negócio",
                 ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(erro);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErroResposta> handleIntegridadeDeDados(DataIntegrityViolationException ex, HttpServletRequest request) {
+        ErroResposta erro = new ErroResposta(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                "Violação de Regra de Negócio",
+                "Não foi possível concluir esta operação: os dados informados violam uma restrição do sistema (campo duplicado, valor muito longo ou registro vinculado a outros dados).",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(erro);

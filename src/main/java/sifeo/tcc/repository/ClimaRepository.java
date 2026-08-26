@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface ClimaRepository extends JpaRepository<Clima, Integer> {
     List<Clima> findBySitioIdOrderByDataHoraDesc(Integer sitioId);
+
+    List<Clima> findBySitio_Usuario_Id(Integer usuarioId);
 }

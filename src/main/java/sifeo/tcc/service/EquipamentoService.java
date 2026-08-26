@@ -2,12 +2,13 @@ package sifeo.tcc.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sifeo.tcc.exception.model.RecursoNaoEncontradoException;
+import sifeo.tcc.exception.model.RegraNegocioException;
 import sifeo.tcc.models.dto.request.EquipamentoRequestDTO;
 import sifeo.tcc.models.dto.response.EquipamentoResponseDTO;
 import sifeo.tcc.models.entities.Equipamento;
 import sifeo.tcc.models.entities.Sitio;
 import sifeo.tcc.repository.EquipamentoRepository;
-import sifeo.tcc.repository.SitioRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,28 +17,31 @@ import java.util.stream.Collectors;
 public class EquipamentoService {
 
     private final EquipamentoRepository equipamentoRepository;
-    private final SitioRepository sitioRepository;
+    private final SitioService sitioService;
+    private final AutenticacaoService autenticacaoService;
 
-    public EquipamentoService(EquipamentoRepository equipamentoRepository, SitioRepository sitioRepository) {
+    public EquipamentoService(EquipamentoRepository equipamentoRepository, SitioService sitioService, AutenticacaoService autenticacaoService) {
         this.equipamentoRepository = equipamentoRepository;
-        this.sitioRepository = sitioRepository;
+        this.sitioService = sitioService;
+        this.autenticacaoService = autenticacaoService;
     }
 
     @Transactional(readOnly = true)
     public List<EquipamentoResponseDTO> listarTodos(Integer sitioId) {
         List<Equipamento> equipamentos;
         if (sitioId != null) {
+            sitioService.buscarSitioSeguro(sitioId);
             equipamentos = equipamentoRepository.findBySitioId(sitioId);
         } else {
-            equipamentos = equipamentoRepository.findAll();
+            Integer usuarioId = autenticacaoService.usuarioLogado().getId();
+            equipamentos = equipamentoRepository.findBySitio_Usuario_Id(usuarioId);
         }
         return equipamentos.stream().map(this::mapearParaDTO).collect(Collectors.toList());
     }
 
     @Transactional
     public EquipamentoResponseDTO cadastrar(EquipamentoRequestDTO dto) {
-        Sitio sitio = sitioRepository.findById(dto.getSitioId())
-                .orElseThrow(() -> new RuntimeException("Propriedade não encontrada."));
+        Sitio sitio = sitioService.buscarSitioSeguro(dto.getSitioId());
 
         Equipamento equipamento = new Equipamento();
         preencherEntidade(equipamento, dto, sitio);
@@ -49,10 +53,10 @@ public class EquipamentoService {
     @Transactional
     public EquipamentoResponseDTO atualizar(Integer id, EquipamentoRequestDTO dto) {
         Equipamento equipamento = equipamentoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Equipamento não encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Equipamento não encontrado."));
+        sitioService.validarPropriedadeDoUsuario(equipamento.getSitio());
 
-        Sitio sitio = sitioRepository.findById(dto.getSitioId())
-                .orElseThrow(() -> new RuntimeException("Propriedade não encontrada."));
+        Sitio sitio = sitioService.buscarSitioSeguro(dto.getSitioId());
 
         preencherEntidade(equipamento, dto, sitio);
 
@@ -62,10 +66,16 @@ public class EquipamentoService {
 
     @Transactional
     public void deletar(Integer id) {
-        if (!equipamentoRepository.existsById(id)) {
-            throw new RuntimeException("Equipamento não encontrado para exclusão.");
+        Equipamento equipamento = equipamentoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Equipamento não encontrado para exclusão."));
+        sitioService.validarPropriedadeDoUsuario(equipamento.getSitio());
+
+        try {
+            equipamentoRepository.delete(equipamento);
+            equipamentoRepository.flush();
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new RegraNegocioException("Não é possível excluir este equipamento pois existem registros vinculados a ele (atividades, documentos).");
         }
-        equipamentoRepository.deleteById(id);
     }
 
     private void preencherEntidade(Equipamento eqp, EquipamentoRequestDTO dto, Sitio sitio) {

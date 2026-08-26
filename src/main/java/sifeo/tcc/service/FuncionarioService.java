@@ -2,12 +2,15 @@ package sifeo.tcc.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sifeo.tcc.exception.model.RecursoNaoEncontradoException;
+import sifeo.tcc.exception.model.RegraNegocioException;
 import sifeo.tcc.models.dto.request.FuncionarioRequestDTO;
 import sifeo.tcc.models.dto.response.FuncionarioResponseDTO;
 import sifeo.tcc.models.entities.Funcionario;
 import sifeo.tcc.models.entities.Sitio;
+import sifeo.tcc.models.enums.StatusFuncionario;
 import sifeo.tcc.repository.FuncionarioRepository;
-import sifeo.tcc.repository.SitioRepository;
+import sifeo.tcc.utils.DocumentoValidator;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,11 +19,13 @@ import java.util.stream.Collectors;
 public class FuncionarioService {
 
     private final FuncionarioRepository repository;
-    private final SitioRepository sitioRepository;
+    private final SitioService sitioService;
+    private final AutenticacaoService autenticacaoService;
 
-    public FuncionarioService(FuncionarioRepository repository, SitioRepository sitioRepository) {
+    public FuncionarioService(FuncionarioRepository repository, SitioService sitioService, AutenticacaoService autenticacaoService) {
         this.repository = repository;
-        this.sitioRepository = sitioRepository;
+        this.sitioService = sitioService;
+        this.autenticacaoService = autenticacaoService;
     }
 
     @Transactional(readOnly = true)
@@ -28,9 +33,11 @@ public class FuncionarioService {
         List<Funcionario> funcionarios;
 
         if (sitioId != null) {
+            sitioService.buscarSitioSeguro(sitioId);
             funcionarios = repository.findBySitioId(sitioId);
         } else {
-            funcionarios = repository.findAll();
+            Integer usuarioId = autenticacaoService.usuarioLogado().getId();
+            funcionarios = repository.findBySitio_Usuario_Id(usuarioId);
         }
 
         return funcionarios.stream().map(this::mapearParaDTO).collect(Collectors.toList());
@@ -56,49 +63,85 @@ public class FuncionarioService {
 
     @Transactional
     public FuncionarioResponseDTO cadastrar(FuncionarioRequestDTO dto) {
+        String cpfLimpo = extrairApenasNumeros(dto.getCpf());
+
+        if (cpfLimpo != null) {
+            DocumentoValidator.validarCpfCnpj(cpfLimpo);
+            if (repository.existsByCpf(cpfLimpo)) {
+                throw new RegraNegocioException("Já existe um funcionário cadastrado com este CPF.");
+            }
+        }
+
+        if (dto.getEmail() != null && !dto.getEmail().trim().isEmpty() && repository.existsByEmail(dto.getEmail().trim())) {
+            throw new RegraNegocioException("Já existe um funcionário cadastrado com este e-mail.");
+        }
+
+        Sitio sitio = sitioService.buscarSitioSeguro(dto.getSitioId());
+
         Funcionario f = new Funcionario();
         f.setNomeCompleto(dto.getNomeCompleto());
-        f.setCpf(dto.getCpf());
+        f.setCpf(cpfLimpo);
         f.setTelefone(dto.getTelefone());
         f.setEmail(dto.getEmail());
         f.setCargo(dto.getCargo());
         f.setDataAdmissao(dto.getDataAdmissao());
         f.setDataNascimento(dto.getDataNascimento());
-        f.setStatus(dto.getStatus() != null ? dto.getStatus() : "ATIVO");
-        Sitio sitio = sitioRepository.findById(dto.getSitioId())
-                .orElseThrow(() -> new RuntimeException("Sítio não encontrado com ID: " + dto.getSitioId()));
+        f.setStatus(dto.getStatus() != null ? dto.getStatus() : StatusFuncionario.ATIVO);
         f.setSitio(sitio);
 
         f = repository.save(f);
         return mapearParaDTO(f);
     }
 
+    private String extrairApenasNumeros(String valor) {
+        if (valor == null || valor.trim().isEmpty()) {
+            return null;
+        }
+        return valor.replaceAll("\\D", "");
+    }
+
     @Transactional
     public void deletar(Integer id) {
-        if (!repository.existsById(id)) {
-            throw new RuntimeException("Funcionário não encontrado com o ID: " + id);
-        }
+        Funcionario f = repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionário não encontrado com o ID: " + id));
+        sitioService.validarPropriedadeDoUsuario(f.getSitio());
 
         try {
-            repository.deleteById(id);
-        } catch (Exception e) {
-            throw new RuntimeException("Não é possível excluir. Este funcionário possui vínculos ativos no sistema.");
+            repository.delete(f);
+            repository.flush();
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new RegraNegocioException("Não é possível excluir. Este funcionário possui vínculos ativos no sistema.");
         }
     }
 
     @Transactional
     public FuncionarioResponseDTO atualizar(Integer id, FuncionarioRequestDTO dto) {
+        String cpfLimpo = extrairApenasNumeros(dto.getCpf());
+
         Funcionario f = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Funcionário não encontrado com ID: " + id));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionário não encontrado com ID: " + id));
+        sitioService.validarPropriedadeDoUsuario(f.getSitio());
+
+        if (cpfLimpo != null) {
+            DocumentoValidator.validarCpfCnpj(cpfLimpo);
+            if (repository.existsByCpfAndIdNot(cpfLimpo, id)) {
+                throw new RegraNegocioException("Já existe um funcionário cadastrado com este CPF.");
+            }
+        }
+
+        if (dto.getEmail() != null && !dto.getEmail().trim().isEmpty()
+                && repository.existsByEmailAndIdNot(dto.getEmail().trim(), id)) {
+            throw new RegraNegocioException("Já existe um funcionário cadastrado com este e-mail.");
+        }
 
         f.setNomeCompleto(dto.getNomeCompleto());
-        f.setCpf(dto.getCpf());
+        f.setCpf(cpfLimpo);
         f.setTelefone(dto.getTelefone());
         f.setEmail(dto.getEmail());
         f.setCargo(dto.getCargo());
         f.setDataAdmissao(dto.getDataAdmissao());
         f.setDataNascimento(dto.getDataNascimento());
-        f.setStatus(dto.getStatus() != null ? dto.getStatus() : "ATIVO");
+        f.setStatus(dto.getStatus() != null ? dto.getStatus() : StatusFuncionario.ATIVO);
 
         f = repository.save(f);
         return mapearParaDTO(f);

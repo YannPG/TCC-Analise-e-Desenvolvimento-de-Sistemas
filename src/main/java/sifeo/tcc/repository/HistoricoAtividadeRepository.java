@@ -7,5 +7,7 @@ import java.util.List;
 
 @Repository
 public interface HistoricoAtividadeRepository extends JpaRepository<HistoricoAtividade, Integer> {
-    List<HistoricoAtividade> findBySetorSitioId(Integer sitioId);
+    List<HistoricoAtividade> findBySitioId(Integer sitioId);
+
+    List<HistoricoAtividade> findBySitio_Usuario_Id(Integer usuarioId);
 }

@@ -49,7 +49,7 @@ public class UsuarioService {
 
     public Usuario buscarPorLogin(String email) {
         return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado no sistema."));
+                .orElseThrow(() -> new sifeo.tcc.exception.model.RecursoNaoEncontradoException("Usuário não encontrado no sistema."));
     }
 
     private String extrairApenasNumeros(String valor) {
@@ -61,10 +61,22 @@ public class UsuarioService {
 
     public UsuarioResponseDTO atualizarPerfil(PerfilRequestDTO dto, Usuario usuarioLogado) {
 
+        String cpfLimpo = extrairApenasNumeros(dto.getCpf());
+
+        usuarioRepository.findByEmail(dto.getEmail())
+                .filter(outro -> !outro.getId().equals(usuarioLogado.getId()))
+                .ifPresent(outro -> { throw new RegraNegocioException("Este e-mail já está cadastrado em outra conta."); });
+
+        if (cpfLimpo != null) {
+            usuarioRepository.findByCpf(cpfLimpo)
+                    .filter(outro -> !outro.getId().equals(usuarioLogado.getId()))
+                    .ifPresent(outro -> { throw new RegraNegocioException("Este CPF já está vinculado a outra conta."); });
+        }
+
         usuarioLogado.setNomeCompleto(dto.getNomeCompleto());
         usuarioLogado.setNomeUsuario(dto.getNomeUsuario());
         usuarioLogado.setEmail(dto.getEmail());
-        usuarioLogado.setCpf(extrairApenasNumeros(dto.getCpf()));
+        usuarioLogado.setCpf(cpfLimpo);
 
         if (dto.getSenha() != null && !dto.getSenha().trim().isEmpty()) {
             usuarioLogado.setSenha(passwordEncoder.encode(dto.getSenha()));

@@ -2,12 +2,13 @@ package sifeo.tcc.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sifeo.tcc.exception.model.RecursoNaoEncontradoException;
+import sifeo.tcc.exception.model.RegraNegocioException;
 import sifeo.tcc.models.dto.request.InsumoRequestDTO;
 import sifeo.tcc.models.dto.response.InsumoResponseDTO;
 import sifeo.tcc.models.entities.Insumo;
 import sifeo.tcc.models.entities.Sitio;
 import sifeo.tcc.repository.InsumoRepository;
-import sifeo.tcc.repository.SitioRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,24 +17,28 @@ import java.util.stream.Collectors;
 public class InsumoService {
 
     private final InsumoRepository insumoRepository;
-    private final SitioRepository sitioRepository;
+    private final SitioService sitioService;
+    private final AutenticacaoService autenticacaoService;
 
-    public InsumoService(InsumoRepository insumoRepository, SitioRepository sitioRepository) {
+    public InsumoService(InsumoRepository insumoRepository, SitioService sitioService, AutenticacaoService autenticacaoService) {
         this.insumoRepository = insumoRepository;
-        this.sitioRepository = sitioRepository;
+        this.sitioService = sitioService;
+        this.autenticacaoService = autenticacaoService;
     }
 
+    @Transactional(readOnly = true)
     public List<InsumoResponseDTO> listarPorSitio(Integer sitioId) {
         if (sitioId == null) {
-            return insumoRepository.findAll().stream().map(this::mapearParaDTO).collect(Collectors.toList());
+            Integer usuarioId = autenticacaoService.usuarioLogado().getId();
+            return insumoRepository.findBySitio_Usuario_Id(usuarioId).stream().map(this::mapearParaDTO).collect(Collectors.toList());
         }
+        sitioService.buscarSitioSeguro(sitioId);
         return insumoRepository.findBySitioId(sitioId).stream().map(this::mapearParaDTO).collect(Collectors.toList());
     }
 
     @Transactional
     public InsumoResponseDTO cadastrar(InsumoRequestDTO dto) {
-        Sitio sitio = sitioRepository.findById(dto.getSitioId())
-                .orElseThrow(() -> new RuntimeException("Sítio não encontrado com ID: " + dto.getSitioId()));
+        Sitio sitio = sitioService.buscarSitioSeguro(dto.getSitioId());
 
         Insumo insumo = new Insumo();
         insumo.setSitio(sitio);
@@ -52,7 +57,8 @@ public class InsumoService {
     @Transactional
     public InsumoResponseDTO atualizar(Integer id, InsumoRequestDTO dto) {
         Insumo insumo = insumoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Insumo não encontrado com ID: " + id));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Insumo não encontrado com ID: " + id));
+        sitioService.validarPropriedadeDoUsuario(insumo.getSitio());
 
         insumo.setNome(dto.getNome());
         insumo.setDescricao(dto.getDescricao());
@@ -70,13 +76,15 @@ public class InsumoService {
 
     @Transactional
     public void deletar(Integer id) {
-        if (!insumoRepository.existsById(id)) {
-            throw new RuntimeException("Insumo não encontrado com o ID: " + id);
-        }
+        Insumo insumo = insumoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Insumo não encontrado com o ID: " + id));
+        sitioService.validarPropriedadeDoUsuario(insumo.getSitio());
+
         try {
-            insumoRepository.deleteById(id);
-        } catch (Exception e) {
-            throw new RuntimeException("Não é possível excluir. O insumo possui vínculos ativos no sistema.");
+            insumoRepository.delete(insumo);
+            insumoRepository.flush();
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new RegraNegocioException("Não é possível excluir. O insumo possui vínculos ativos no sistema.");
         }
     }
 
@@ -91,6 +99,7 @@ public class InsumoService {
         dto.setFornecedor(insumo.getFornecedor());
 
         if (insumo.getSitio() != null) {
+            dto.setSitioId(insumo.getSitio().getId());
             dto.setPropriedadeNome(insumo.getSitio().getNome());
         }
         return dto;
