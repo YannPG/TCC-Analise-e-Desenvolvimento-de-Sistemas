@@ -1,6 +1,7 @@
 package sifeo.tcc.models.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import sifeo.tcc.models.enums.CategoriaInsumo;
@@ -16,6 +17,7 @@ public class InsumoRequestDTO {
     private String nome;
 
     private String descricao;
+    @PositiveOrZero(message = "A quantidade em estoque não pode ser negativa")
     private Double quantidadeEstoque;
 
     private CategoriaInsumo categoria;
