@@ -1,6 +1,7 @@
 package sifeo.tcc.controller;
 
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sifeo.tcc.models.dto.request.AtividadeRequestDTO;
@@ -23,7 +24,7 @@ public class AtividadeController {
 
     @PostMapping
     public ResponseEntity<?> cadastrar(@Valid @RequestBody AtividadeRequestDTO dto) {
-        return ResponseEntity.ok(service.cadastrar(dto));
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.cadastrar(dto));
     }
 
     @PutMapping("/{id}")

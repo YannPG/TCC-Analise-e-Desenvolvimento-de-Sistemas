@@ -1,5 +1,7 @@
 package sifeo.tcc.controller;
 
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sifeo.tcc.models.dto.request.TipoAtividadeRequestDTO;
@@ -20,8 +22,8 @@ import java.util.List;
         }
 
         @PostMapping
-        public ResponseEntity<TipoAtividadeResponseDTO> cadastrar(@RequestBody TipoAtividadeRequestDTO dto) {
-            return ResponseEntity.ok(service.cadastrar(dto));
+        public ResponseEntity<TipoAtividadeResponseDTO> cadastrar(@Valid @RequestBody TipoAtividadeRequestDTO dto) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(service.cadastrar(dto));
         }
 
         @DeleteMapping("/{id}")
