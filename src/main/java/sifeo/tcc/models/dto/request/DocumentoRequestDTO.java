@@ -17,7 +17,6 @@ public class DocumentoRequestDTO {
     @NotNull(message = "A categoria do documento é obrigatória")
     private Integer categoriaId;
 
-    /** SETOR, EQUIPAMENTO, INSUMO, FUNCIONARIO ou ATIVIDADE. Nulo = documento geral da propriedade. */
     private String tipoVinculo;
 
     private Integer vinculoId;
@@ -36,7 +35,6 @@ public class DocumentoRequestDTO {
     @PositiveOrZero(message = "O valor não pode ser negativo")
     private BigDecimal valor;
 
-    /** Conteúdo do arquivo em Base64. Obrigatório ao cadastrar; opcional ao atualizar (mantém o arquivo atual se vazio). */
     private String arquivoBase64;
 
     private String nomeArquivo;
